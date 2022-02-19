@@ -40,7 +40,13 @@ describe("[Challenge] Bank", function () {
 
   });
   it("Exploit", async function() {
-    console.log(ethers.utils.parseUnits('10', 'ether').toHexString())
-
+    const bankAttack = await this.bank.connect(attacker)
+    const attackContract = await ( await ethers.getContractFactory("AttackBank", attacker))
+        .deploy(attacker.address, this.weth.address, this.bank.address)
+    // console.log(await attackContract.balanceOf(attacker.address))
+    // console.log("bank", bankAttack.address)
+    // await bankAttack.depositToken(0, attackContract.address, 1)
+    //TODO underflow accounts[msg.sender].length and set it to 2^256 - 1
+    //with help of function setAccountName(uint256 accountId, string name) 
   })
 });
